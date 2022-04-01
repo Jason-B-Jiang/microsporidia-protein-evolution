@@ -1,0 +1,70 @@
+# Combines all orthogroup domain architectures from cath-resolve-hits into a
+# csv file for each microsporidia species + yeast pair, and another csv file
+# aligning and compare domain architectures for each pair
+
+import glob
+
+
+SPECIES = glob_wildcards('../data/proteome_pairs/{sp_name}_S_cere').sp_name
+PFAM_CLAN_DATA = '../data/pfam_domain_data/Pfam-A-clans.tsv'
+CLAN_HASHTABLE = '../data/pfam_domain_data/Pfam_fam_to_clan.rds'
+SCO_DOMAIN_ARCHS = glob.glob('../results/sco_domain_archs/*_S_cere')
+MICROSP_CRH = expand('../results/sco_domain_archs/{sp}_S_cere/{sp}_crh.csv',
+                     sp=SPECIES)
+YEAST_CRH = expand('../results/sco_domain_archs/{sp}_S_cere/S_cere_crh.csv',
+                   sp=SPECIES)
+MERGED_CRH_ARCHS = expand(
+    '../results/sco_domain_archs/{sp}_S_cere/{sp}_S_cere_DA.csv', sp=SPECIES)
+ALIGNED_ARCHS = expand(
+    '../results/sco_domain_archs/{sp}_S_cere/{sp}_S_cere_DA_aligned.csv',
+    sp=SPECIES)
+
+
+rule all:
+    input: MICROSP_CRH, YEAST_CRH, MERGED_CRH_ARCHS, ALIGNED_ARCHS
+
+
+rule make_clan_hashtable:
+    input: PFAM_CLAN_DATA
+    output: CLAN_HASHTABLE
+    shell: 'Rscript ./helper_scripts/make_clan_hashtable.R {input} {output}'
+
+
+rule merge_domain_archs:
+    input:
+        archs=SCO_DOMAIN_ARCHS,
+        hash=CLAN_HASHTABLE
+    output: MERGED_CRH_ARCHS, MICROSP_CRH, YEAST_CRH
+    shell: 
+        """
+        for f in {input.archs}
+        do
+            Rscript ./helper_scripts/merge_domain_archs.R $f {input.hash}
+        done
+        """
+
+
+rule align_domain_archs:
+    input: MERGED_CRH_ARCHS
+    output: ALIGNED_ARCHS
+    shell:
+        """
+        for f in {input}
+        do
+            Rscript ./helper_scripts/align_ortholog_DAs.R $f
+        done
+        """
+
+
+rule clean:
+    # Add back in shit to delete when you're ready
+    shell:
+        """
+        rm {MERGED_CRH_ARCHS}
+        """
+
+        #         rm {CLAN_HASHTABLE} &&\
+
+        #         rm {MICROSP_CRH} {YEAST_CRH} &&\
+
+        #         rm {ALIGNED_ARCHS}

@@ -1,0 +1,43 @@
+# Constants
+MERGED_ALIGNED_DA = '../../results/domain_arch_conservation/merged_DA_alignments.csv'
+CLADE_HASH = '../../data/microsp_clades/clades.rds'
+OUT_DIR = '../../results/Fig_4'
+ORTHO_HEATMAP = OUT_DIR + '/heatmap.tiff'
+ORTHO_HEATMAP_DATA = OUT_DIR + '/heatmap.csv'
+
+################################################################################
+
+# Rules
+
+rule all:
+    input:
+        heatmap=ORTHO_HEATMAP,
+        heatmap_data=ORTHO_HEATMAP_DATA
+
+
+rule make_ortholog_heatmap:
+    """
+    Creates a heatmap of all microsporidia species and single-copy orthologs
+    they share with yeast, with colors corresponding to degree of domain
+    architecture conservation with the yeast ortholog.
+    """
+    input:
+        merged=MERGED_ALIGNED_DA,
+        clades=CLADE_HASH
+    output:
+        heatmap=ORTHO_HEATMAP,
+        heatmap_data=ORTHO_HEATMAP_DATA
+    shell:
+        """
+        mkdir -p {OUT_DIR} &&\
+        Rscript filler {input.merged} {input.clades} {output.heatmap} {output.heatmap_data}
+        """
+
+
+rule clean:
+    """
+    Removes all outputs from this script.
+    """
+    input:
+        OUT_DIR
+    shell: 'rm -r {input}'

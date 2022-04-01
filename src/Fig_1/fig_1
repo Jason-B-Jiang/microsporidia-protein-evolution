@@ -1,0 +1,86 @@
+### Global constants
+
+# Output directories/files
+fig_1b_plots = '../../results/Fig_1/Fig_1B'
+sco_lengths = '../../results/Fig_1/Fig_1B/merged_SCOs.csv'
+fig_1c_plots = '../../results/Fig_1/Fig_1C'
+fig_1d_plots = '../../results/Fig_1/Fig_1D'
+fig_1f_plots = '../../results/Fig_1/Fig_1F'
+ortho_pair_alignments = '../../results/Fig_1/Fig_1F/ortho_alignments'
+
+# Data files
+sco_data = '../../results/scos'
+essential_genes = '../../data/essential_yeast_genes/essential.txt'
+linker_len_data = '../../results/sco_summary_stats/SCO_linker_lengths_summary.csv'
+dom_len_data = '../../results/sco_summary_stats/SCO_domain_lengths_summary.csv'
+proteome_pairs = '../../data/proteome_pairs'
+PTC_tolerance_data = '../../data/PTC_data/supp_12.xls'
+sgd_to_uniprot_names = '../../data/PTC_data/yeast.txt'
+
+################################################################################
+
+### Rules
+
+rule all:
+    input: fig_1b_plots, fig_1c_plots, fig_1d_plots, fig_1f_plots
+
+## Plot Fig 1B
+rule plot_sco_length_histograms:
+    """Plot histograms of microsporida protein lengths compared to yeast, for
+    each individual microsporidia species and all microsporidia species together.
+    """
+    input: sco_data, essential_genes
+    output: directory(fig_1b_plots)
+    shell:
+        """
+        mkdir -p {output} &&\
+        Rscript ./plot_sco_length_histograms.R {input[0]} {input[1]} {output}
+        """
+
+## Plot Fig 1C
+rule plot_dom_linker_length_boxplots:
+    """Plot boxplots comparing linker and domain length differences in essential
+    and non-essential ortholog pairs.
+    """
+    input: linker_len_data, dom_len_data, essential_genes
+    output: directory(fig_1c_plots)
+    shell:
+        """
+        mkdir -p {output} &&\
+        Rscript ./plot_dom_linker_length_boxplots.R {input} {output}
+        """
+
+## Plot Fig 1D
+rule plot_prt_length_conservation:
+    """Plot scatterplots comparing lengths of microsporidia proteins to their
+    percent sequence identity with their yeast orthologs.
+
+    NOTE: Fig 1F is generated before Fig 1D, as Fig 1D relies on the ortholog
+    alignments from 1F to calculate %identity between ortholog pairs
+    """
+    input: sco_lengths, directory(ortho_pair_alignments)
+    output: directory(fig_1d_plots)
+    shell:
+        """
+        mkdir -p {output} &&\
+        Rscript ./plot_prt_length_conservation.R {input} {output}
+        """
+
+## Plot Fig 1F
+rule compare_c_term_truncation_to_PTC_tolerance:
+    """Create scatterplots comparing extent of c-terminal truncation in
+    microsporidia orthologs to yeast, with number of PTCs tolerated by the
+    correspnding yeast ortholog.
+    """
+    input: proteome_pairs, PTC_tolerance_data, sgd_to_uniprot_names
+    output: directory(fig_1f_plots), ortho_pair_alignments
+    shell:
+        """
+        Rscript ./plot_c_term_diffs_to_ptc_tolerance.R {input} {output}
+        """
+
+rule clean:
+    """Removes all output produced by this Snakefile.
+    """
+    input: fig_1b_plots, fig_1c_plots, fig_1d_plots, fig_1f_plots
+    shell: 'rm -r {input}'

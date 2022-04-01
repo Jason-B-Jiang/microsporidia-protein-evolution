@@ -1,0 +1,53 @@
+### Constants for data files used by this script
+ptc_data = '../../data/PTC_data/supp_11.xls'
+yeast_intron_boundaries = '../../data/PTC_data/intron_coordinates'
+yeast_gene_names = '../../data/PTC_data/yeast.txt'  # for mapping sgd to uniprot names
+aligned_domain_archs = '../../results/domain_arch_conservation/merged_DA_alignments.csv'
+sco_domain_archs = '../../results/sco_domain_archs'
+ortho_pairs = '../../results/sco_summary_stats/SCO_protein_lengths_summary.csv'
+
+
+### Constants for output files to be produced by this script
+yeast_introns = './introns.csv'  # table of intron coordinates in yeast genes
+sgd_to_uniprot = './sgd_to_uniprot.rds'  # hashtable mapping sgd to uniprot gene names
+annotated_ptc_data = '../../results/Fig_2/Fig_2C/annotated_supp_11.csv'
+fig_2c_plot = '../../results/Fig_2/Fig_2C/Fig_2C.svg'
+
+################################################################################
+
+### Snakemake rules
+rule all:
+    input: fig_2c_plot
+
+
+### Plot Fig 2C
+rule map_sgd_names_to_uniprot:
+    """Makes hashtable matching SGD gene names to uniprot gene names.
+    """
+    input: yeast_gene_names
+    output: sgd_to_uniprot
+    shell: 'Rscript ./map_sgd_names_to_uniprot.R {input} {output}'
+
+rule parse_gene_introns:
+    """Parses txt files from SGD for intron coordinates in yeast genes into a
+    single csv file.
+    """
+    input: yeast_intron_boundaries
+    output: yeast_introns
+    shell: 'Rscript ./parse_gene_introns.R {input} {output}'
+
+rule annotate_ptc_disrupted_domains:
+    """Annotate PTC data (supp table 11) from X et al's 2018 paper to indicate
+    what protein domains are disrupted in the yeast gene by each PTC.
+    """
+    input: ptc_data, sgd_to_uniprot, sco_domain_archs, yeast_introns, ortho_pairs
+    output: annotated_ptc_data
+    shell: 'Rscript ./annotate_ptc_disrupted_domains.R {input} {output}'
+
+rule plot_fig_2c:
+    input: annotated_ptc_data, aligned_domain_archs
+    output: fig_2c_plot
+    shell: 'Rscript ./plot_fig_2c.R {input} {output}'
+
+
+### Plot Fig 2D

@@ -1,0 +1,30 @@
+# wget https://github.com/UCLOrengoGroup/cath-tools/releases/download/v0.16.10/cath-resolve-hits.ubuntu-20.04
+# Command above is for downloading CRH executable to bin
+
+import glob
+
+
+# Define global variables
+CRH = "../bin/cath-resolve-hits.ubuntu-20.04"
+ORTHOGROUP_ARCHITECTURES = glob.glob("../results/sco_dom*/*/OG*")
+CRH_OUTPUTS = [f + "/crh" for f in ORTHOGROUP_ARCHITECTURES]
+
+print(f"Number of orthogroups: {len(ORTHOGROUP_ARCHITECTURES)}")
+
+# Rules
+rule all:
+    input: CRH_OUTPUTS
+
+
+rule resolve_hmmscan_hits:
+    input: ORTHOGROUP_ARCHITECTURES
+
+    output: directory(CRH_OUTPUTS)
+
+    shell: './helper_scripts/resolve_hmmscan_hits.sh {input} {CRH}'
+
+
+rule clean:
+    input: CRH_OUTPUTS
+
+    shell: 'rm -r {input}'

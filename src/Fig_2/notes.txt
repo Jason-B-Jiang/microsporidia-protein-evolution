@@ -1,0 +1,4 @@
+- supp 11 from PTC paper -> PTCs defined by distance from amino acid sequence end?
+- only 3 genes in PTC dataset have introns, and are also conserved in microsporidia
+- PTC CDS lengths are 1 AA longer than uniprot seqs (maybe includes stop codon, or excludes methionine?)
+- 4 genes w/ dispensible domains have introns

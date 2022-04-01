@@ -1,0 +1,51 @@
+# Constants
+MERGED_DA_ALIGNMENTS = \
+    '../results/domain_arch_conservation/merged_DA_alignments.csv'
+CLAN_HASHTABLE = '../data/pfam_domain_data/Pfam_fam_to_clan.rds'
+CLADE_CSV = '../data/microsp_clades/clades.csv'
+CLADE_HASHTABLE = '../data/microsp_clades/clades.rds'
+OUTPUT_DIR = '../results/lost_doms_pca'
+LOST_CLANS = OUTPUT_DIR + '/lost_clans.csv'
+LOST_CLANS_NORMALIZED = OUTPUT_DIR + '/lost_clans_normalized.csv'
+PCA_PLOT = OUTPUT_DIR + '/lost_doms_PCA.png'
+
+################################################################################
+
+rule all:
+    input: PCA_PLOT
+
+
+rule make_clade_hashtable:
+    input: CLADE_CSV
+    output: CLADE_HASHTABLE
+    shell: 'Rscript ./helper_scripts/make_microsp_clade_hash.R {input} {output}'
+
+
+rule get_lost_doms:
+    input:
+        merged_DA=MERGED_DA_ALIGNMENTS,
+        clan_map=CLAN_HASHTABLE,
+        clades_map=CLADE_HASHTABLE,
+    output: LOST_DOMS
+    shell:
+        '''
+        mkdir -p {OUTPUT_DIR} &&\
+        Rscript ./helper_scripts/get_PCA_lost_doms.R {input.merged_DA} {input.clan_map} {input.clades_map} {output}
+        '''
+
+
+rule make_pca_plot:
+    input: LOST_DOMS
+    output: PCA_PLOT
+    shell: 'echo pass'
+
+
+rule clean:
+    input:
+        out_dir=OUTPUT_DIR,
+        clade_hash=CLADE_HASHTABLE
+    shell:
+        '''
+        rm -r {input.out_dir} &&\
+        rm {input.clade_hash}
+        '''

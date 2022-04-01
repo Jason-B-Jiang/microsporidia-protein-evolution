@@ -1,0 +1,55 @@
+import glob
+import os
+
+# Global variables
+# TODO - replace test folders
+SPECIES = glob_wildcards('../data/proteome_pairs/{sp_name}_S_cere').sp_name
+OF_RESULTS = glob.glob("../data/proteome_pairs/*_S_cere/Ortho*/Res*/Work*/Ortho*/Res*")
+SPLIT_OF_FILES = [f + "/SCO_seqs_split" for f in OF_RESULTS]
+RESULT_DIR = "../results/sco_domain_archs"
+RESULT_DIRS = expand("../results/sco_domain_archs/{sp_name}_S_cere",
+                     sp_name=SPECIES)
+CMD_DIR = "../data/hmmscan_cmds"
+HMMSCAN_CMDS = expand("../data/hmmscan_cmds/{sp}",
+                      sp = [sp + '_S_cere' for sp in SPECIES])
+PFAM_LIB = "../data/pfam_hmm_lib/Pfam-A.hmm"
+
+
+# Prepare folders for each microsporidia species in results, for directing
+# hmmscan outputs to
+rule all:
+    input: HMMSCAN_CMDS
+
+rule prep_results_folders:
+    input: OF_RESULTS
+    output: directory(RESULT_DIRS)
+    shell:
+        """
+        for f in {input}
+        do
+            ./helper_scripts/prep_hmmscan_folders.sh $f {RESULT_DIR}
+        done
+        """
+
+rule generate_hmmscan_cmds:
+    input:
+        results_dir=RESULT_DIRS,
+        of_results=OF_RESULTS
+    output: HMMSCAN_CMDS
+    run:
+        # iterate over results and orthofinder data dirs in parallel
+        for i in range(len(RESULT_DIRS)):
+            # load in corresponding results and orthofinder directories
+            results = RESULT_DIRS[i]
+            of_data = OF_RESULTS[i]
+            shell_cmd = \
+                f"./helper_scripts/generate_hmmscan_cmds.sh {of_data} {results} {CMD_DIR} {PFAM_LIB}"
+            os.system(shell_cmd)
+
+rule clean:
+    shell:
+        """
+        rm -r {SPLIT_OF_FILES}
+        rm -r {HMMSCAN_CMDS}
+        rm -r {RESULTS_DIRS}
+        """

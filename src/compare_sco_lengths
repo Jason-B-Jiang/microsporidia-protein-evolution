@@ -1,0 +1,56 @@
+import glob
+
+# Define constants
+HASHMAP_DIR = '../data/ortholog_lengths'
+SCO_STATS_DIR = '../results/sco_summary_stats'
+
+SPECIES = glob_wildcards('../results/scos/{sp_name}_S_cere_SCOs.csv').sp_name
+SCO_CSV = glob.glob('../results/scos/*.csv')
+SCO_DA = glob.glob('../results/sco_domain_archs/')
+
+SCO_PROTEIN_STATS = SCO_STATS_DIR + '/SCO_protein_lengths_summary.csv'
+SCO_LINKER_STATS = SCO_STATS_DIR + '/SCO_linker_lengths_summary.csv'
+SCO_DOMAIN_STATS = SCO_STATS_DIR + '/SCO_domain_lengths_summary.csv'
+
+SCO_STATS = [SCO_PROTEIN_STATS, SCO_LINKER_STATS, SCO_DOMAIN_STATS]
+SCO_LENGTH_HASHMAPS = expand('../data/ortholog_lengths/{sp}_SCO_hash.rds',
+                             sp=SPECIES)  # use HASHMAP_DIR here
+
+################################################################################
+
+# Rules
+
+rule all:
+    input:
+        hash=SCO_LENGTH_HASHMAPS,
+        stats=SCO_STATS
+
+
+rule make_SCO_length_hashmaps:
+    input: SCO_CSV
+    output: SCO_LENGTH_HASHMAPS
+    shell:
+        """
+        mkdir -p {HASHMAP_DIR} &&\
+        Rscript ./helper_scripts/make_sco_len_hashtables.R {HASHMAP_DIR} {input}
+        """
+
+
+rule get_SCO_stats:
+    input:
+        sco=SCO_CSV,
+        hash=SCO_LENGTH_HASHMAPS
+    output: SCO_STATS
+    shell:
+        """
+        mkdir -p {SCO_STATS_DIR} &&\
+        Rscript ./helper_scripts/get_SCO_protein_stats.R {SCO_STATS_DIR} {input.sco} &&\
+        Rscript ./helper_scripts/get_SCO_linker_domain_stats.R {SCO_STATS_DIR} {HASHMAP_DIR} {SCO_DA} {SPECIES}
+        """
+
+
+rule clean:
+    shell:
+        """
+        rm -r {HASHMAP_DIR} {SCO_STATS_DIR}
+        """

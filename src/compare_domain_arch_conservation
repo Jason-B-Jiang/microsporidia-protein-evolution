@@ -1,0 +1,44 @@
+import glob
+
+# Constants
+ALIGNED_DA = '../results/sco_domain_archs'
+SPECIES = glob_wildcards('../results/sco_domain_archs/{sp}_S_cere').sp
+ESSENTIAL_YEAST_GENES = '../data/essential_yeast_genes/essential.txt'
+OUTPUT_DIR = '../results/domain_arch_conservation'
+GRAPHS_DIR = '../results/domain_arch_conservation/graphs'
+MERGED_DA_ALIGNMENTS = OUTPUT_DIR + '/merged_DA_alignments.csv'
+
+################################################################################
+
+rule all:
+    input:
+        graphs = directory(GRAPHS_DIR),
+        merged_alignments = MERGED_DA_ALIGNMENTS
+
+
+rule merge_aligned_DA_csv:
+    input: ALIGNED_DA
+    output: MERGED_DA_ALIGNMENTS
+    shell:
+        '''
+        mkdir -p {OUTPUT_DIR} &&\
+        Rscript ./helper_scripts/merge_domain_arch_dataframes.R {input} {ESSENTIAL_YEAST_GENES} {OUTPUT_DIR} {SPECIES}
+        '''
+
+
+rule graph_DA_conservation:
+    input: MERGED_DA_ALIGNMENTS
+    output: directory(GRAPHS_DIR)
+    shell:
+        '''
+        mkdir -p {output} &&\
+        Rscript ./helper_scripts/graph_DA_change_rates.R {input} {output}
+        '''
+
+
+rule clean:
+    shell:
+        '''
+        rm {MERGED_DA_ALIGNMENTS} &&\
+        rm -r {GRAPHS}
+        '''
