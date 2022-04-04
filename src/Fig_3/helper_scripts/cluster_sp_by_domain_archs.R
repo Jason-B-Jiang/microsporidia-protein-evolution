@@ -146,7 +146,7 @@ cluster_microsp_by_DA <- function(aligned_DA) {
   # Exclude first column (species names) from dissimilarity calculations
   gower_dist <- daisy(ortholog_DA_conservation[, -1], metric = 'gower')
   
-  # Cluster colleges w/ k-medoids clustering (PAM)
+  # Cluster species w/ k-medoids clustering (PAM)
   # First, choose ideal number of clusters to maximize silhouette width
   sil_width <- c(NA)
   
